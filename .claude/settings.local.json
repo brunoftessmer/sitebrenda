@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(npm -v)",
-      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)"
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(mv *)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(npm view *)",
+      "Bash(npm audit *)",
+      "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(v.filter\\(x=>x.startsWith\\('6.'\\)\\).slice\\(-5\\)\\)\")",
+      "Bash(node -e \"const v=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(v.filter\\(x=>/^6\\\\.\\\\d+\\\\.\\\\d+$/.test\\(x\\)\\).slice\\(-5\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(npx --yes @next/codemod@canary middleware-to-proxy)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(break)",
+      "Bash(rm -f /tmp/cookies_user.txt /tmp/cookies_admin.txt)",
+      "Bash(curl -s http://localhost:3000/api/numeros)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('total:', d.numbers.length, 'first:', d.numbers[0], 'status set:', [...new Set\\(d.numbers.map\\(n=>n.status\\)\\)]\\)\")",
+      "Bash(curl -s -c /tmp/cookies_user.txt -X POST http://localhost:3000/api/auth/cadastro -H 'Content-Type: application/json' -d '{\"name\":\"Convidado Teste\",\"phone\":\"11988887777\",\"password\":\"senha123\"}')",
+      "Bash(node *)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"sim, pode resetar\" npx prisma migrate reset --force)",
+      "Bash(tasklist *)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill *)"
     ]
   }
 }
