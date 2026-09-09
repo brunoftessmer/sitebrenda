@@ -8,6 +8,7 @@ type ReservationData = {
   id: string;
   status: "PENDING" | "PAID" | "CANCELED";
   totalCents: number;
+  buyerConfirmedAt: string | null;
   numbers: number[];
 };
 
@@ -28,7 +29,9 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
   const [canceling, setCanceling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -41,6 +44,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
       }
       setReservation(data.reservation);
       setPix(data.pix);
+      setConfirmingPayment(Boolean(data.reservation.buyerConfirmedAt));
     } finally {
       setLoading(false);
     }
@@ -59,10 +63,27 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleConfirmPayment() {
-    // Só um aviso visual pro comprador — quem confirma o pagamento de fato é
-    // a Brenda no painel admin, depois de checar o Pix na conta dela.
-    setConfirmingPayment(true);
+  async function handleConfirmPayment() {
+    // Avisa o servidor que o comprador diz ter pago — isso só evita que a
+    // reserva expire sozinha; quem confirma o pagamento de fato continua
+    // sendo a Brenda no painel admin.
+    setConfirmError(null);
+    try {
+      const res = await fetch(`/api/reservas/${id}/confirmar-pagamento`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setShowConfirmPaymentModal(false);
+        setConfirmError(data.error ?? "Não foi possível confirmar.");
+        await load();
+        return;
+      }
+      setShowConfirmPaymentModal(false);
+      setConfirmingPayment(true);
+    } catch {
+      setConfirmError("Erro de conexão. Tente novamente.");
+    }
   }
 
   async function handleCancel() {
@@ -149,7 +170,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
             </>
           ) : (
             <button
-              onClick={handleConfirmPayment}
+              onClick={() => setShowConfirmPaymentModal(true)}
               className="w-full rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
               Já paguei
@@ -160,6 +181,14 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
             Depois de pagar, aguarde a confirmação da Brenda. Não é necessário
             enviar comprovante pelo site.
           </p>
+          {!confirmingPayment && (
+            <p className="text-xs text-stone-400">
+              Esse número fica reservado por algumas horas. Se você não
+              confirmar o pagamento aqui nesse tempo, ele volta a ficar
+              disponível para outras pessoas.
+            </p>
+          )}
+          {confirmError && <p className="text-xs text-red-600">{confirmError}</p>}
         </div>
       )}
 
@@ -201,6 +230,34 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
                 className="flex-1 rounded-full bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-60"
               >
                 {canceling ? "Cancelando…" : "Sim, cancelar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmPaymentModal && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-rose-200 bg-white p-5 shadow-lg">
+            <h2 className="text-lg font-semibold text-rose-800">
+              Confirma que você já pagou?
+            </h2>
+            <p className="mt-2 text-sm text-stone-600">
+              Só confirme depois de concluir o pagamento pelo Pix. A Brenda
+              ainda vai checar o recebimento antes de garantir o número.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setShowConfirmPaymentModal(false)}
+                className="flex-1 rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50"
+              >
+                Ainda não
+              </button>
+              <button
+                onClick={handleConfirmPayment}
+                className="flex-1 rounded-full bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+              >
+                Sim, já paguei
               </button>
             </div>
           </div>

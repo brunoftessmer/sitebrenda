@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { jsonError, handleAuthError } from "@/lib/api";
+import { releaseExpiredReservations } from "@/lib/reservas";
 
 const PAGE_SIZE = 10;
 const STATUSES = ["PENDING", "PAID", "CANCELED"] as const;
@@ -10,6 +11,7 @@ type Status = (typeof STATUSES)[number];
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
+    await releaseExpiredReservations();
 
     const { searchParams } = req.nextUrl;
     const statusParam = searchParams.get("status");

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/api";
 import { buildPixQrCodeDataUrl } from "@/lib/pix";
+import { releaseExpiredReservations } from "@/lib/reservas";
 
 // O id da reserva funciona como um link privado (é imprevisível): quem tem o
 // link consegue ver o status e o Pix, sem precisar de login.
@@ -11,6 +12,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    await releaseExpiredReservations();
 
     const reservation = await prisma.reservation.findUnique({
       where: { id },
@@ -45,6 +48,7 @@ export async function GET(
         status: reservation.status,
         totalCents: reservation.totalCents,
         createdAt: reservation.createdAt,
+        buyerConfirmedAt: reservation.buyerConfirmedAt,
         numbers: reservation.numbers.map((n) => n.number),
       },
       pix,

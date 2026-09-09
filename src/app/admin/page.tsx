@@ -11,6 +11,7 @@ type Reservation = {
   createdAt: string;
   buyerName: string;
   buyerPhone: string;
+  buyerConfirmedAt: string | null;
   numbers: { number: number }[];
 };
 
@@ -144,6 +145,11 @@ export default function AdminPage() {
               {r.numbers.map((n) => n.number).join(", ")}
             </p>
             <p className="mt-1 text-sm text-stone-500">{formatBRL(r.totalCents)}</p>
+            {r.status === "PENDING" && r.buyerConfirmedAt && (
+              <p className="mt-1 text-sm font-medium text-emerald-600">
+                ✓ Comprador avisou que já pagou
+              </p>
+            )}
 
             {r.status === "PENDING" && (
               <div className="mt-3 flex gap-2">

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/api";
 import { buildPixQrCodeDataUrl } from "@/lib/pix";
+import { releaseExpiredReservations } from "@/lib/reservas";
 
 const PRICE_CENTS = 2500;
 
@@ -52,6 +53,8 @@ export async function POST(req: NextRequest) {
       return jsonError(400, parsed.error.issues[0]?.message ?? "Dados inválidos.");
     }
     const { name, phone, numbers } = parsed.data;
+
+    await releaseExpiredReservations();
 
     const reservation = await prisma.$transaction(async (tx) => {
       const slots = await tx.numberSlot.findMany({

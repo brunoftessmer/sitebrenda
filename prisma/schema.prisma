@@ -26,14 +26,18 @@ enum ReservationStatus {
 }
 
 model Reservation {
-  id          String            @id @default(cuid())
-  buyerName   String
-  buyerPhone  String
-  status      ReservationStatus @default(PENDING)
-  totalCents  Int
-  createdAt   DateTime          @default(now())
-  confirmedAt DateTime?
-  numbers     NumberSlot[]
+  id                String            @id @default(cuid())
+  buyerName         String
+  buyerPhone        String
+  status            ReservationStatus @default(PENDING)
+  totalCents        Int
+  createdAt         DateTime          @default(now())
+  // Marcado quando o comprador clica em "Já paguei" na tela do Pix. Não
+  // confirma o pagamento de verdade (isso é sempre manual, pelo admin), mas
+  // impede que a reserva expire sozinha enquanto o admin ainda não checou.
+  buyerConfirmedAt  DateTime?
+  confirmedAt       DateTime?
+  numbers           NumberSlot[]
 }
 
 enum NumberStatus {
