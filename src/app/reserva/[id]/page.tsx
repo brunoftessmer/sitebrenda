@@ -63,9 +63,6 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
     // Só um aviso visual pro comprador — quem confirma o pagamento de fato é
     // a Brenda no painel admin, depois de checar o Pix na conta dela.
     setConfirmingPayment(true);
-    setTimeout(() => {
-      router.push("/");
-    }, 1800);
   }
 
   async function handleCancel() {
@@ -138,10 +135,18 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
           </button>
 
           {confirmingPayment ? (
-            <p className="text-sm font-medium text-emerald-700">
-              Obrigada! Assim que a Brenda confirmar o pagamento, seu número
-              fica garantido. 🎉
-            </p>
+            <>
+              <p className="text-sm font-medium text-emerald-700">
+                Obrigada! Assim que a Brenda confirmar o pagamento, seu número
+                fica garantido. 🎉
+              </p>
+              <button
+                onClick={() => router.push("/")}
+                className="w-full rounded-full border border-rose-300 px-4 py-2 text-sm text-rose-700 hover:bg-rose-50"
+              >
+                Voltar para os números
+              </button>
+            </>
           ) : (
             <button
               onClick={handleConfirmPayment}
