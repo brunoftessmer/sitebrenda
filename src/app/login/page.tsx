@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -42,7 +41,13 @@ function LoginForm() {
 
   return (
     <div className="mx-auto w-full max-w-sm px-4 py-10">
-      <h1 className="mb-6 text-xl font-semibold text-rose-800">Entrar</h1>
+      <h1 className="mb-1 text-xl font-semibold text-rose-800">
+        Área da administração
+      </h1>
+      <p className="mb-6 text-sm text-stone-500">
+        Login restrito à Brenda. Para reservar um número não é necessário
+        entrar.
+      </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm text-stone-600">
@@ -78,13 +83,6 @@ function LoginForm() {
           {loading ? "Entrando…" : "Entrar"}
         </button>
       </form>
-
-      <p className="mt-4 text-sm text-stone-600">
-        Ainda não tem conta?{" "}
-        <Link href="/cadastro" className="font-medium text-rose-700">
-          Cadastre-se
-        </Link>
-      </p>
     </div>
   );
 }

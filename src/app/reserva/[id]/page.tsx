@@ -28,6 +28,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
   const [canceling, setCanceling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -56,6 +57,15 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
     await navigator.clipboard.writeText(pix.payload);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleConfirmPayment() {
+    // Só um aviso visual pro comprador — quem confirma o pagamento de fato é
+    // a Brenda no painel admin, depois de checar o Pix na conta dela.
+    setConfirmingPayment(true);
+    setTimeout(() => {
+      router.push("/");
+    }, 1800);
   }
 
   async function handleCancel() {
@@ -126,6 +136,21 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
           >
             {copied ? "Copiado!" : "Copiar código Pix"}
           </button>
+
+          {confirmingPayment ? (
+            <p className="text-sm font-medium text-emerald-700">
+              Obrigada! Assim que a Brenda confirmar o pagamento, seu número
+              fica garantido. 🎉
+            </p>
+          ) : (
+            <button
+              onClick={handleConfirmPayment}
+              className="w-full rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Já paguei
+            </button>
+          )}
+
           <p className="text-xs text-stone-400">
             Depois de pagar, aguarde a confirmação da Brenda. Não é necessário
             enviar comprovante pelo site.
@@ -136,7 +161,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
       {reservation.status === "PENDING" && (
         <button
           onClick={() => setShowCancelModal(true)}
-          disabled={canceling}
+          disabled={canceling || confirmingPayment}
           className="mt-4 w-full rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
         >
           {canceling ? "Cancelando…" : "Cancelar reserva"}

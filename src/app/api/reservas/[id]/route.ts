@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { jsonError, handleAuthError } from "@/lib/api";
+import { jsonError } from "@/lib/api";
 import { buildPixQrCodeDataUrl } from "@/lib/pix";
 
+// O id da reserva funciona como um link privado (é imprevisível): quem tem o
+// link consegue ver o status e o Pix, sem precisar de login.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireUser();
     const { id } = await params;
 
     const reservation = await prisma.reservation.findUnique({
@@ -17,7 +17,7 @@ export async function GET(
       include: { numbers: { select: { number: true } } },
     });
 
-    if (!reservation || (reservation.userId !== user.id && !user.isAdmin)) {
+    if (!reservation) {
       return jsonError(404, "Reserva não encontrada.");
     }
 
@@ -50,6 +50,7 @@ export async function GET(
       pix,
     });
   } catch (err) {
-    return handleAuthError(err) ?? jsonError(500, "Erro inesperado.");
+    console.error(err);
+    return jsonError(500, "Erro inesperado.");
   }
 }

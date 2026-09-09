@@ -12,10 +12,6 @@ import {
 export { SESSION_COOKIE };
 export type { SessionPayload };
 
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 10);
-}
-
 export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }

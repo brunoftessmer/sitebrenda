@@ -23,17 +23,15 @@ export default function Header() {
         </Link>
 
         <nav className="flex items-center gap-3 text-sm">
-          {loading ? null : user ? (
+          <Link href="/minhas-compras" className="text-stone-600 hover:text-rose-700">
+            Minhas compras
+          </Link>
+
+          {loading ? null : user?.isAdmin ? (
             <>
-              <Link href="/minhas-compras" className="text-stone-600 hover:text-rose-700">
-                Minhas compras
+              <Link href="/admin" className="text-stone-600 hover:text-rose-700">
+                Área do administrador
               </Link>
-              {user.isAdmin && (
-                <Link href="/admin" className="text-stone-600 hover:text-rose-700">
-                  Área do administrador
-                </Link>
-              )}
-              <span className="hidden text-stone-500 sm:inline">Olá, {user.name.split(" ")[0]}</span>
               <button
                 onClick={handleLogout}
                 className="rounded-full border border-rose-300 px-3 py-1 text-rose-700 hover:bg-rose-100"
@@ -42,20 +40,12 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <>
-              <Link
-                href="/login"
-                className="rounded-full border border-rose-300 px-3 py-1 text-rose-700 hover:bg-rose-100"
-              >
-                Entrar
-              </Link>
-              <Link
-                href="/cadastro"
-                className="rounded-full bg-rose-600 px-3 py-1 text-white hover:bg-rose-700"
-              >
-                Cadastrar
-              </Link>
-            </>
+            <Link
+              href="/login"
+              className="rounded-full border border-rose-300 px-3 py-1 text-rose-700 hover:bg-rose-100"
+            >
+              Acessar como administrador
+            </Link>
           )}
         </nav>
       </div>

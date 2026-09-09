@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { jsonError, handleAuthError } from "@/lib/api";
+import { jsonError } from "@/lib/api";
 import { buildPixQrCodeDataUrl } from "@/lib/pix";
 
 const PRICE_CENTS = 2500;
 
 const schema = z.object({
+  name: z.string().trim().min(2, "Informe seu nome completo.").max(80),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\d{10,11}$/, "Telefone deve ter 10 ou 11 dígitos (DDD + número)."),
   numbers: z
     .array(z.number().int().min(1).max(100))
     .min(1, "Selecione ao menos um número.")
@@ -17,30 +21,37 @@ const schema = z.object({
     }),
 });
 
-export async function GET() {
-  try {
-    const user = await requireUser();
-    const reservations = await prisma.reservation.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      include: { numbers: { select: { number: true } } },
-    });
-    return NextResponse.json({ reservations });
-  } catch (err) {
-    return handleAuthError(err) ?? jsonError(500, "Erro inesperado.");
+// Usado pela página "Minhas compras", que guarda os ids das reservas feitas
+// neste navegador (não há login) e consulta o status delas aqui.
+export async function GET(req: NextRequest) {
+  const idsParam = req.nextUrl.searchParams.get("ids");
+  const ids = (idsParam ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 50);
+
+  if (ids.length === 0) {
+    return NextResponse.json({ reservations: [] });
   }
+
+  const reservations = await prisma.reservation.findMany({
+    where: { id: { in: ids } },
+    orderBy: { createdAt: "desc" },
+    include: { numbers: { select: { number: true } } },
+  });
+
+  return NextResponse.json({ reservations });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser();
-
     const body = await req.json().catch(() => null);
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return jsonError(400, parsed.error.issues[0]?.message ?? "Dados inválidos.");
     }
-    const { numbers } = parsed.data;
+    const { name, phone, numbers } = parsed.data;
 
     const reservation = await prisma.$transaction(async (tx) => {
       const slots = await tx.numberSlot.findMany({
@@ -58,7 +69,8 @@ export async function POST(req: NextRequest) {
 
       const created = await tx.reservation.create({
         data: {
-          userId: user.id,
+          buyerName: name,
+          buyerPhone: phone,
           totalCents,
           status: "PENDING",
         },
@@ -99,9 +111,6 @@ export async function POST(req: NextRequest) {
       pix: { payload, qrCodeDataUrl: dataUrl },
     });
   } catch (err) {
-    const authErr = handleAuthError(err);
-    if (authErr) return authErr;
-
     if (err instanceof Error && err.message.startsWith("INDISPONIVEL:")) {
       const nums = err.message.split(":")[1];
       return jsonError(

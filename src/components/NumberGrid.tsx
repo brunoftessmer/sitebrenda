@@ -7,7 +7,21 @@ type SlotStatus = "AVAILABLE" | "RESERVED" | "PAID";
 type Slot = { number: number; status: SlotStatus };
 
 const PRICE_CENTS = 2500;
-const SELECTION_STORAGE_KEY = "brenda:selecao";
+const BUYER_STORAGE_KEY = "brenda:comprador";
+const MINHAS_RESERVAS_KEY = "brenda:minhas_reservas";
+
+function addReservationToLocalHistory(id: string) {
+  try {
+    const raw = localStorage.getItem(MINHAS_RESERVAS_KEY);
+    const ids: string[] = raw ? JSON.parse(raw) : [];
+    localStorage.setItem(
+      MINHAS_RESERVAS_KEY,
+      JSON.stringify([id, ...ids.filter((existing) => existing !== id)].slice(0, 50))
+    );
+  } catch {
+    // localStorage indisponível — segue sem guardar histórico
+  }
+}
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", {
@@ -23,6 +37,10 @@ export default function NumberGrid() {
   const [selected, setSelected] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showBuyerModal, setShowBuyerModal] = useState(false);
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
+  const [buyerError, setBuyerError] = useState<string | null>(null);
 
   async function loadSlots() {
     setLoading(true);
@@ -39,14 +57,15 @@ export default function NumberGrid() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSlots();
 
-    const saved = sessionStorage.getItem(SELECTION_STORAGE_KEY);
-    if (saved) {
-      try {
-        setSelected(JSON.parse(saved));
-      } catch {
-        // ignora seleção salva inválida
+    try {
+      const raw = localStorage.getItem(BUYER_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as { name?: string; phone?: string };
+        if (saved.name) setBuyerName(saved.name);
+        if (saved.phone) setBuyerPhone(saved.phone);
       }
-      sessionStorage.removeItem(SELECTION_STORAGE_KEY);
+    } catch {
+      // ignora dados salvos inválidos
     }
   }, []);
 
@@ -62,38 +81,56 @@ export default function NumberGrid() {
 
   const totalCents = selected.length * PRICE_CENTS;
 
-  async function handleContinue() {
+  function handleContinue() {
     if (selected.length === 0) return;
     setError(null);
+    setBuyerError(null);
+    setShowBuyerModal(true);
+  }
+
+  async function handleConfirmReserva(e: React.FormEvent) {
+    e.preventDefault();
+    const name = buyerName.trim();
+    const phone = buyerPhone.replace(/\D/g, "");
+
+    if (name.length < 2) {
+      setBuyerError("Informe seu nome completo.");
+      return;
+    }
+    if (!/^\d{10,11}$/.test(phone)) {
+      setBuyerError("Telefone deve ter 10 ou 11 dígitos (DDD + número).");
+      return;
+    }
+
+    setBuyerError(null);
     setSubmitting(true);
 
     try {
-      const meRes = await fetch("/api/auth/me");
-      const meData = await meRes.json();
-
-      if (!meData.user) {
-        sessionStorage.setItem(SELECTION_STORAGE_KEY, JSON.stringify(selected));
-        router.push("/login?redirect=/");
-        return;
-      }
-
       const res = await fetch("/api/reservas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numbers: selected }),
+        body: JSON.stringify({ name, phone, numbers: selected }),
       });
       const data = await res.json();
 
       if (!res.ok) {
+        setShowBuyerModal(false);
         setError(data.error ?? "Não foi possível concluir a reserva.");
         await loadSlots();
         setSelected([]);
         return;
       }
 
+      try {
+        localStorage.setItem(BUYER_STORAGE_KEY, JSON.stringify({ name, phone }));
+      } catch {
+        // localStorage indisponível — segue sem salvar
+      }
+      addReservationToLocalHistory(data.reservation.id);
+
       router.push(`/reserva/${data.reservation.id}`);
     } catch {
-      setError("Erro de conexão. Tente novamente.");
+      setBuyerError("Erro de conexão. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
@@ -178,6 +215,64 @@ export default function NumberGrid() {
             </button>
           </div>
           {error && <p className="mx-auto mt-2 max-w-3xl text-sm text-red-600">{error}</p>}
+        </div>
+      )}
+
+      {showBuyerModal && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 px-4">
+          <form
+            onSubmit={handleConfirmReserva}
+            className="w-full max-w-sm rounded-xl border border-rose-200 bg-white p-5 shadow-lg"
+          >
+            <h2 className="text-lg font-semibold text-rose-800">Quase lá!</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              Informe seu nome e telefone para reservar o
+              {selected.length > 1 ? "s números" : " número"} {selected.join(", ")}.
+            </p>
+
+            <label className="mt-4 flex flex-col gap-1 text-sm text-stone-600">
+              Nome completo
+              <input
+                className="rounded-lg border border-stone-300 px-3 py-2"
+                value={buyerName}
+                onChange={(e) => setBuyerName(e.target.value)}
+                autoFocus
+                required
+              />
+            </label>
+
+            <label className="mt-3 flex flex-col gap-1 text-sm text-stone-600">
+              Telefone (DDD + número)
+              <input
+                className="rounded-lg border border-stone-300 px-3 py-2"
+                value={buyerPhone}
+                onChange={(e) => setBuyerPhone(e.target.value)}
+                inputMode="numeric"
+                placeholder="11999999999"
+                required
+              />
+            </label>
+
+            {buyerError && <p className="mt-3 text-sm text-red-600">{buyerError}</p>}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowBuyerModal(false)}
+                disabled={submitting}
+                className="flex-1 rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
+              >
+                Voltar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 rounded-full bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {submitting ? "Aguarde…" : "Reservar"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

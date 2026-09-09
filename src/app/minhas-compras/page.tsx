@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+const MINHAS_RESERVAS_KEY = "brenda:minhas_reservas";
+
 type Reservation = {
   id: string;
   status: "PENDING" | "PAID" | "CANCELED";
@@ -26,11 +28,25 @@ export default function MinhasComprasPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/reservas")
+    let ids: string[] = [];
+    try {
+      const raw = localStorage.getItem(MINHAS_RESERVAS_KEY);
+      ids = raw ? JSON.parse(raw) : [];
+    } catch {
+      ids = [];
+    }
+
+    if (ids.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReservations([]);
+      return;
+    }
+
+    fetch(`/api/reservas?ids=${ids.join(",")}`)
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error ?? "Faça login para ver suas compras.");
+          setError(data.error ?? "Não foi possível carregar suas reservas.");
           return;
         }
         setReservations(data.reservations);
@@ -40,7 +56,10 @@ export default function MinhasComprasPage() {
 
   return (
     <div className="mx-auto w-full max-w-sm px-4 py-8">
-      <h1 className="mb-4 text-xl font-semibold text-rose-800">Minhas compras</h1>
+      <h1 className="mb-1 text-xl font-semibold text-rose-800">Minhas compras</h1>
+      <p className="mb-4 text-sm text-stone-500">
+        Reservas feitas neste navegador.
+      </p>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -58,14 +77,12 @@ export default function MinhasComprasPage() {
             <p className="mt-1 text-sm text-stone-500">
               {formatBRL(r.totalCents)} · {statusLabel[r.status]}
             </p>
-            {r.status === "PENDING" && (
-              <Link
-                href={`/reserva/${r.id}`}
-                className="mt-2 inline-block text-sm font-medium text-rose-700 underline"
-              >
-                Ver Pix / cancelar
-              </Link>
-            )}
+            <Link
+              href={`/reserva/${r.id}`}
+              className="mt-2 inline-block text-sm font-medium text-rose-700 underline"
+            >
+              {r.status === "PENDING" ? "Ver Pix / cancelar" : "Ver detalhes"}
+            </Link>
           </li>
         ))}
       </ul>

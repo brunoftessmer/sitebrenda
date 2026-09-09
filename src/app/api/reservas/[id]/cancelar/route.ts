@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { jsonError, handleAuthError } from "@/lib/api";
+import { jsonError } from "@/lib/api";
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireUser();
     const { id } = await params;
 
     const reservation = await prisma.reservation.findUnique({
@@ -16,7 +14,7 @@ export async function POST(
       include: { numbers: true },
     });
 
-    if (!reservation || reservation.userId !== user.id) {
+    if (!reservation) {
       return jsonError(404, "Reserva não encontrada.");
     }
 
@@ -37,6 +35,7 @@ export async function POST(
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return handleAuthError(err) ?? jsonError(500, "Erro inesperado.");
+    console.error(err);
+    return jsonError(500, "Erro inesperado.");
   }
 }

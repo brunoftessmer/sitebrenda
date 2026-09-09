@@ -7,9 +7,8 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const needsAdmin = pathname.startsWith("/admin");
-  const needsUser = pathname.startsWith("/minhas-compras");
 
-  if ((needsAdmin && !session?.isAdmin) || (needsUser && !session)) {
+  if (needsAdmin && !session?.isAdmin) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
@@ -20,5 +19,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/minhas-compras/:path*"],
+  matcher: ["/admin/:path*"],
 };
