@@ -53,6 +53,7 @@ export async function getCurrentUser() {
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) throw new Error("UNAUTHORIZED");
+  if (!user.isActive) throw new Error("DEACTIVATED");
   return user;
 }
 

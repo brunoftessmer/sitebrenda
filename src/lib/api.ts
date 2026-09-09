@@ -11,5 +11,8 @@ export function handleAuthError(err: unknown) {
   if (err instanceof Error && err.message === "FORBIDDEN") {
     return jsonError(403, "Acesso restrito ao admin.");
   }
+  if (err instanceof Error && err.message === "DEACTIVATED") {
+    return jsonError(403, "Sua conta foi desativada. Fale com a Brenda.");
+  }
   return null;
 }

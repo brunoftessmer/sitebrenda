@@ -30,7 +30,7 @@ export default function Header() {
               </Link>
               {user.isAdmin && (
                 <Link href="/admin" className="text-stone-600 hover:text-rose-700">
-                  Admin
+                  Área do administrador
                 </Link>
               )}
               <span className="hidden text-stone-500 sm:inline">Olá, {user.name.split(" ")[0]}</span>

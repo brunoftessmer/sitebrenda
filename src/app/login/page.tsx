@@ -1,11 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/";
 
@@ -32,8 +31,8 @@ function LoginForm() {
         return;
       }
 
-      router.push(redirect);
-      router.refresh();
+      // Full reload (not router.push) so Header's useSession refetches /api/auth/me.
+      window.location.href = redirect;
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {

@@ -27,6 +27,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [canceling, setCanceling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -58,13 +59,13 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
   }
 
   async function handleCancel() {
-    if (!confirm("Tem certeza que deseja cancelar essa reserva?")) return;
     setCanceling(true);
     try {
       const res = await fetch(`/api/reservas/${id}/cancelar`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Não foi possível cancelar.");
+        setShowCancelModal(false);
         return;
       }
       router.push("/");
@@ -134,7 +135,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
 
       {reservation.status === "PENDING" && (
         <button
-          onClick={handleCancel}
+          onClick={() => setShowCancelModal(true)}
           disabled={canceling}
           className="mt-4 w-full rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
         >
@@ -147,6 +148,34 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
       <Link href="/" className="mt-6 block text-center text-sm text-rose-700 underline">
         Voltar para a página inicial
       </Link>
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-rose-200 bg-white p-5 shadow-lg">
+            <h2 className="text-lg font-semibold text-rose-800">Cancelar reserva?</h2>
+            <p className="mt-2 text-sm text-stone-600">
+              Os números {reservation.numbers.join(", ")} vão voltar a ficar
+              disponíveis para outras pessoas. Essa ação não pode ser desfeita.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={canceling}
+                className="flex-1 rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
+              >
+                Manter reserva
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={canceling}
+                className="flex-1 rounded-full bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {canceling ? "Cancelando…" : "Sim, cancelar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

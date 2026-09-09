@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
     return jsonError(401, "Telefone ou senha incorretos.");
   }
 
+  if (!user.isActive) {
+    return jsonError(403, "Sua conta foi desativada. Fale com a Brenda.");
+  }
+
   await createSessionCookie({ sub: user.id, isAdmin: user.isAdmin });
 
   return NextResponse.json({

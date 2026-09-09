@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Reservation = {
   id: string;
@@ -69,7 +70,15 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <h1 className="mb-1 text-xl font-semibold text-rose-800">Painel admin</h1>
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-rose-800">Painel admin</h1>
+        <Link
+          href="/admin/usuarios"
+          className="text-sm text-rose-700 underline"
+        >
+          Usuários
+        </Link>
+      </div>
       <p className="mb-6 text-sm text-stone-500">
         Total confirmado: <span className="font-medium">{formatBRL(totalConfirmed)}</span>
       </p>

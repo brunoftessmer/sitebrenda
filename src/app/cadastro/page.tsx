@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function CadastroPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -30,8 +28,9 @@ export default function CadastroPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      // Full reload (not router.push) so Header's useSession refetches /api/auth/me.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = "/";
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
