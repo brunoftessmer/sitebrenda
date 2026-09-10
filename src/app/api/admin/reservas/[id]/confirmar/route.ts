@@ -19,19 +19,48 @@ export async function POST(
       return jsonError(409, "Só é possível confirmar reservas pendentes.");
     }
 
-    await prisma.$transaction([
-      prisma.numberSlot.updateMany({
-        where: { reservationId: id },
-        data: { status: "PAID" },
-      }),
-      prisma.reservation.update({
+    await prisma.$transaction(async (tx) => {
+      // O comprador pode ainda não ter clicado em "Já paguei" (números não
+      // vinculados a este NumberSlot ainda). O admin pode confirmar mesmo
+      // assim, desde que os números não tenham sido ganhos por outra reserva
+      // enquanto isso.
+      const slots = await tx.numberSlot.findMany({
+        where: { number: { in: reservation.requestedNumbers } },
+      });
+
+      const takenByOther = slots.filter(
+        (s) => s.status !== "AVAILABLE" && s.reservationId !== id
+      );
+      if (takenByOther.length > 0) {
+        throw new Error(
+          `INDISPONIVEL:${takenByOther.map((s) => s.number).join(",")}`
+        );
+      }
+
+      await tx.numberSlot.updateMany({
+        where: { number: { in: reservation.requestedNumbers } },
+        data: { status: "PAID", reservationId: id },
+      });
+
+      await tx.reservation.update({
         where: { id },
-        data: { status: "PAID", confirmedAt: new Date() },
-      }),
-    ]);
+        data: {
+          status: "PAID",
+          confirmedAt: new Date(),
+          buyerConfirmedAt: reservation.buyerConfirmedAt ?? new Date(),
+        },
+      });
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("INDISPONIVEL:")) {
+      const nums = err.message.split(":")[1];
+      return jsonError(
+        409,
+        `Os números ${nums} já foram reservados por outra pessoa nesse meio tempo.`
+      );
+    }
     return handleAuthError(err) ?? jsonError(500, "Erro inesperado.");
   }
 }

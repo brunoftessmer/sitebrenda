@@ -17,7 +17,6 @@ export async function GET(
 
     const reservation = await prisma.reservation.findUnique({
       where: { id },
-      include: { numbers: { select: { number: true } } },
     });
 
     if (!reservation) {
@@ -49,7 +48,7 @@ export async function GET(
         totalCents: reservation.totalCents,
         createdAt: reservation.createdAt,
         buyerConfirmedAt: reservation.buyerConfirmedAt,
-        numbers: reservation.numbers.map((n) => n.number),
+        numbers: reservation.requestedNumbers,
       },
       pix,
     });

@@ -26,9 +26,7 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
   const [pix, setPix] = useState<PixData>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [canceling, setCanceling] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
@@ -83,23 +81,6 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
       setConfirmingPayment(true);
     } catch {
       setConfirmError("Erro de conexão. Tente novamente.");
-    }
-  }
-
-  async function handleCancel() {
-    setCanceling(true);
-    try {
-      const res = await fetch(`/api/reservas/${id}/cancelar`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Não foi possível cancelar.");
-        setShowCancelModal(false);
-        return;
-      }
-      router.push("/");
-      router.refresh();
-    } finally {
-      setCanceling(false);
     }
   }
 
@@ -183,23 +164,14 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
           </p>
           {!confirmingPayment && (
             <p className="text-xs text-stone-400">
-              Esse número fica reservado por algumas horas. Se você não
-              confirmar o pagamento aqui nesse tempo, ele volta a ficar
-              disponível para outras pessoas.
+              Esse número ainda está disponível para outras pessoas. Assim que
+              você pagar, clique em &quot;Já paguei&quot; para garantir a
+              prioridade — a partir daí ele fica reservado por algumas horas
+              até a Brenda confirmar o recebimento.
             </p>
           )}
           {confirmError && <p className="text-xs text-red-600">{confirmError}</p>}
         </div>
-      )}
-
-      {reservation.status === "PENDING" && (
-        <button
-          onClick={() => setShowCancelModal(true)}
-          disabled={canceling || confirmingPayment}
-          className="mt-4 w-full rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
-        >
-          {canceling ? "Cancelando…" : "Cancelar reserva"}
-        </button>
       )}
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
@@ -208,34 +180,6 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
         Voltar para a página inicial
       </Link>
 
-      {showCancelModal && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 px-4">
-          <div className="w-full max-w-sm rounded-xl border border-rose-200 bg-white p-5 shadow-lg">
-            <h2 className="text-lg font-semibold text-rose-800">Cancelar reserva?</h2>
-            <p className="mt-2 text-sm text-stone-600">
-              Os números {reservation.numbers.join(", ")} vão voltar a ficar
-              disponíveis para outras pessoas. Essa ação não pode ser desfeita.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={() => setShowCancelModal(false)}
-                disabled={canceling}
-                className="flex-1 rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
-              >
-                Manter reserva
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={canceling}
-                className="flex-1 rounded-full bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-60"
-              >
-                {canceling ? "Cancelando…" : "Sim, cancelar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showConfirmPaymentModal && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 px-4">
           <div className="w-full max-w-sm rounded-xl border border-rose-200 bg-white p-5 shadow-lg">
@@ -243,8 +187,9 @@ export default function ReservaPage({ params }: { params: Promise<{ id: string }
               Confirma que você já pagou?
             </h2>
             <p className="mt-2 text-sm text-stone-600">
-              Só confirme depois de concluir o pagamento pelo Pix. A Brenda
-              ainda vai checar o recebimento antes de garantir o número.
+              Só confirme depois de concluir o pagamento pelo Pix. Isso
+              reserva o número para você — a Brenda ainda vai checar o
+              recebimento antes de garantir de vez.
             </p>
             <div className="mt-5 flex gap-2">
               <button

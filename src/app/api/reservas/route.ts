@@ -39,10 +39,14 @@ export async function GET(req: NextRequest) {
   const reservations = await prisma.reservation.findMany({
     where: { id: { in: ids } },
     orderBy: { createdAt: "desc" },
-    include: { numbers: { select: { number: true } } },
   });
 
-  return NextResponse.json({ reservations });
+  return NextResponse.json({
+    reservations: reservations.map((r) => ({
+      ...r,
+      numbers: r.requestedNumbers.map((number) => ({ number })),
+    })),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -56,35 +60,32 @@ export async function POST(req: NextRequest) {
 
     await releaseExpiredReservations();
 
-    const reservation = await prisma.$transaction(async (tx) => {
-      const slots = await tx.numberSlot.findMany({
-        where: { number: { in: numbers } },
-      });
+    // Só cria o pedido de Pix aqui — não trava os números ainda. Eles só
+    // ficam de fato reservados quando o comprador confirmar "Já paguei"
+    // (rota confirmar-pagamento), então mais de uma pessoa pode estar com
+    // esses mesmos números "em aberto" até lá. Ainda assim, não faz sentido
+    // gerar Pix para um número que já foi confirmado por outra pessoa.
+    const slots = await prisma.numberSlot.findMany({
+      where: { number: { in: numbers } },
+    });
 
-      const unavailable = slots.filter((s) => s.status !== "AVAILABLE");
-      if (unavailable.length > 0) {
-        throw new Error(
-          `INDISPONIVEL:${unavailable.map((s) => s.number).join(",")}`
-        );
-      }
+    const unavailable = slots.filter((s) => s.status !== "AVAILABLE");
+    if (unavailable.length > 0) {
+      throw new Error(
+        `INDISPONIVEL:${unavailable.map((s) => s.number).join(",")}`
+      );
+    }
 
-      const totalCents = numbers.length * PRICE_CENTS;
+    const totalCents = numbers.length * PRICE_CENTS;
 
-      const created = await tx.reservation.create({
-        data: {
-          buyerName: name,
-          buyerPhone: phone,
-          totalCents,
-          status: "PENDING",
-        },
-      });
-
-      await tx.numberSlot.updateMany({
-        where: { number: { in: numbers } },
-        data: { status: "RESERVED", reservationId: created.id },
-      });
-
-      return created;
+    const reservation = await prisma.reservation.create({
+      data: {
+        buyerName: name,
+        buyerPhone: phone,
+        totalCents,
+        status: "PENDING",
+        requestedNumbers: numbers,
+      },
     });
 
     const pixKey = process.env.PIX_KEY;

@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
-        include: { numbers: { select: { number: true } } },
       }),
       prisma.reservation.count({ where: { status } }),
       prisma.reservation.groupBy({ by: ["status"], _count: { _all: true } }),
@@ -46,7 +45,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      reservations,
+      reservations: reservations.map((r) => ({
+        ...r,
+        numbers: r.requestedNumbers.map((number) => ({ number })),
+      })),
       total,
       page,
       pageSize: PAGE_SIZE,

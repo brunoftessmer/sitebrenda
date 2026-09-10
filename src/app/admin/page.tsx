@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [totalConfirmedCents, setTotalConfirmedCents] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [releaseTarget, setReleaseTarget] = useState<Reservation | null>(null);
 
   async function load(status: Status, pageToLoad: number) {
     const res = await fetch(
@@ -97,6 +98,12 @@ export default function AdminPage() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function handleConfirmRelease() {
+    if (!releaseTarget) return;
+    await handleAction(releaseTarget.id, "liberar");
+    setReleaseTarget(null);
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -161,7 +168,7 @@ export default function AdminPage() {
                   Confirmar pagamento
                 </button>
                 <button
-                  onClick={() => handleAction(r.id, "liberar")}
+                  onClick={() => setReleaseTarget(r)}
                   disabled={busyId === r.id}
                   className="rounded-full border border-stone-300 px-4 py-1.5 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
                 >
@@ -172,7 +179,7 @@ export default function AdminPage() {
 
             {r.status === "PAID" && (
               <button
-                onClick={() => handleAction(r.id, "liberar")}
+                onClick={() => setReleaseTarget(r)}
                 disabled={busyId === r.id}
                 className="mt-3 rounded-full border border-stone-300 px-4 py-1.5 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
               >
@@ -206,6 +213,38 @@ export default function AdminPage() {
           >
             Próxima
           </button>
+        </div>
+      )}
+
+      {releaseTarget && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 px-4">
+          <div className="w-full max-w-sm rounded-xl border border-rose-200 bg-white p-5 shadow-lg">
+            <h2 className="text-lg font-semibold text-rose-800">
+              Liberar número{releaseTarget.numbers.length > 1 ? "s" : ""}?
+            </h2>
+            <p className="mt-2 text-sm text-stone-600">
+              Número{releaseTarget.numbers.length > 1 ? "s" : ""}{" "}
+              {releaseTarget.numbers.map((n) => n.number).join(", ")} (de{" "}
+              {releaseTarget.buyerName}) vai voltar a ficar disponível para
+              outras pessoas. Essa ação não pode ser desfeita.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setReleaseTarget(null)}
+                disabled={busyId === releaseTarget.id}
+                className="flex-1 rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60"
+              >
+                Manter
+              </button>
+              <button
+                onClick={handleConfirmRelease}
+                disabled={busyId === releaseTarget.id}
+                className="flex-1 rounded-full bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {busyId === releaseTarget.id ? "Liberando…" : "Sim, liberar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

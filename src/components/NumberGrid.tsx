@@ -191,9 +191,6 @@ export default function NumberGrid() {
         <span className="flex items-center gap-1">
           <span className="inline-block h-3 w-3 rounded bg-stone-200" /> Reservado
         </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-rose-600" /> Presenteado
-        </span>
       </div>
 
       {selected.length > 0 && (
@@ -226,8 +223,10 @@ export default function NumberGrid() {
           >
             <h2 className="text-lg font-semibold text-rose-800">Quase lá!</h2>
             <p className="mt-1 text-sm text-stone-600">
-              Informe seu nome e telefone para reservar o
-              {selected.length > 1 ? "s números" : " número"} {selected.join(", ")}.
+              Informe seu nome e telefone para gerar o Pix d
+              {selected.length > 1 ? "os números" : "o número"} {selected.join(", ")}.
+              O número só fica reservado depois que você confirmar o pagamento
+              na próxima tela.
             </p>
 
             <label className="mt-4 flex flex-col gap-1 text-sm text-stone-600">
@@ -269,7 +268,7 @@ export default function NumberGrid() {
                 disabled={submitting}
                 className="flex-1 rounded-full bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-60"
               >
-                {submitting ? "Aguarde…" : "Reservar"}
+                {submitting ? "Aguarde…" : "Gerar Pix"}
               </button>
             </div>
           </form>

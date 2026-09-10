@@ -23,10 +23,6 @@ export default function Header() {
         </Link>
 
         <nav className="flex items-center gap-3 text-sm">
-          <Link href="/minhas-compras" className="text-stone-600 hover:text-rose-700">
-            Minhas compras
-          </Link>
-
           {loading ? null : user?.isAdmin ? (
             <>
               <Link href="/admin" className="text-stone-600 hover:text-rose-700">

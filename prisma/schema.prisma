@@ -31,10 +31,16 @@ model Reservation {
   buyerPhone        String
   status            ReservationStatus @default(PENDING)
   totalCents        Int
+  // Números pedidos na hora de gerar o Pix. Não implica reserva de verdade —
+  // isso só acontece quando o comprador confirma "Já paguei" (ver
+  // buyerConfirmedAt). Guardado aqui porque, até esse momento, o NumberSlot
+  // correspondente pode ainda não estar vinculado a esta reserva.
+  requestedNumbers  Int[]
   createdAt         DateTime          @default(now())
-  // Marcado quando o comprador clica em "Já paguei" na tela do Pix. Não
-  // confirma o pagamento de verdade (isso é sempre manual, pelo admin), mas
-  // impede que a reserva expire sozinha enquanto o admin ainda não checou.
+  // Marcado quando o comprador clica em "Já paguei" na tela do Pix. É esse
+  // clique que efetivamente reserva os números (trava o NumberSlot), não a
+  // criação da reserva. O pagamento em si continua sendo confirmado
+  // manualmente pelo admin.
   buyerConfirmedAt  DateTime?
   confirmedAt       DateTime?
   numbers           NumberSlot[]
