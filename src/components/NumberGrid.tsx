@@ -142,6 +142,10 @@ export default function NumberGrid() {
 
   return (
     <div className="pb-28">
+      <p className="mx-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        Ah, o Pix vai para a minha irmã, viu? O nome dela é Diérci Jordana.
+      </p>
+
       <div className="grid grid-cols-5 gap-2 px-4 sm:grid-cols-10">
         {slots.map((slot) => {
           const isSelected = selected.includes(slot.number);
