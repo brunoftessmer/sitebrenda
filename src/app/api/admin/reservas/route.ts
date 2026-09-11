@@ -20,15 +20,27 @@ export async function GET(req: NextRequest) {
       : "PENDING";
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
 
-    const [reservations, total, counts, paidAgg] = await Promise.all([
+    // Uma reserva PENDING só entra na fila de análise do admin depois que o
+    // comprador clica em "Já paguei" (buyerConfirmedAt preenchido). Antes
+    // disso é só um Pix gerado que ninguém confirmou — não deveria aparecer
+    // aqui.
+    const where =
+      status === "PENDING"
+        ? { status, buyerConfirmedAt: { not: null } }
+        : { status };
+
+    const [reservations, total, counts, pendingConfirmedCount, paidAgg] = await Promise.all([
       prisma.reservation.findMany({
-        where: { status },
+        where,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * PAGE_SIZE,
         take: PAGE_SIZE,
       }),
-      prisma.reservation.count({ where: { status } }),
+      prisma.reservation.count({ where }),
       prisma.reservation.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.reservation.count({
+        where: { status: "PENDING", buyerConfirmedAt: { not: null } },
+      }),
       prisma.reservation.aggregate({
         where: { status: "PAID" },
         _sum: { totalCents: true },
@@ -43,6 +55,7 @@ export async function GET(req: NextRequest) {
     for (const c of counts) {
       countsByStatus[c.status as Status] = c._count._all;
     }
+    countsByStatus.PENDING = pendingConfirmedCount;
 
     return NextResponse.json({
       reservations: reservations.map((r) => ({
