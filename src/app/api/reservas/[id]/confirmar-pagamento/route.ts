@@ -45,24 +45,47 @@ export async function POST(
         );
       }
 
-      await tx.numberSlot.updateMany({
+      const result = await tx.numberSlot.updateMany({
         where: { number: { in: reservation.requestedNumbers }, status: "AVAILABLE" },
         data: { status: "RESERVED", reservationId: id },
       });
+
+      // Alguém confirmou pagamento para um desses números entre a leitura e
+      // a escrita acima (concorrência). Aborta a transação inteira — o
+      // rollback desfaz o updateMany, ninguém fica com reserva parcial.
+      if (result.count !== reservation.requestedNumbers.length) {
+        throw new Error("INDISPONIVEL:concorrencia");
+      }
 
       await tx.reservation.update({
         where: { id },
         data: { buyerConfirmedAt: new Date() },
       });
-    });
+    }, { maxWait: 10000, timeout: 15000 });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Error && err.message.startsWith("INDISPONIVEL:")) {
       const nums = err.message.split(":")[1];
+      const detail =
+        nums === "concorrencia"
+          ? ""
+          : ` (${nums})`;
       return jsonError(
         409,
-        `Os números ${nums} não estão mais disponíveis — alguém confirmou o pagamento antes de você. Cancele esta reserva e escolha outros números.`
+        `Um ou mais números dessa reserva${detail} não estão mais disponíveis — alguém confirmou o pagamento antes de você. Cancele esta reserva e escolha outros números.`
+      );
+    }
+
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: string }).code === "P2028"
+    ) {
+      return jsonError(
+        503,
+        "Muita gente confirmando pagamento ao mesmo tempo. Aguarde alguns segundos e tente de novo."
       );
     }
 

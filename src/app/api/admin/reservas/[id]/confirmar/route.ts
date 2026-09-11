@@ -37,10 +37,20 @@ export async function POST(
         );
       }
 
-      await tx.numberSlot.updateMany({
-        where: { number: { in: reservation.requestedNumbers } },
+      // Só atualiza números ainda livres ou já vinculados a esta reserva —
+      // nunca sobrescreve um número que virou de outra reserva entre a
+      // leitura acima e esta escrita.
+      const result = await tx.numberSlot.updateMany({
+        where: {
+          number: { in: reservation.requestedNumbers },
+          OR: [{ status: "AVAILABLE" }, { reservationId: id }],
+        },
         data: { status: "PAID", reservationId: id },
       });
+
+      if (result.count !== reservation.requestedNumbers.length) {
+        throw new Error("INDISPONIVEL:concorrencia");
+      }
 
       await tx.reservation.update({
         where: { id },
@@ -50,15 +60,27 @@ export async function POST(
           buyerConfirmedAt: reservation.buyerConfirmedAt ?? new Date(),
         },
       });
-    });
+    }, { maxWait: 10000, timeout: 15000 });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Error && err.message.startsWith("INDISPONIVEL:")) {
       const nums = err.message.split(":")[1];
+      const detail = nums === "concorrencia" ? "" : ` (${nums})`;
       return jsonError(
         409,
-        `Os números ${nums} já foram reservados por outra pessoa nesse meio tempo.`
+        `Um ou mais números dessa reserva${detail} já foram reservados por outra pessoa nesse meio tempo.`
+      );
+    }
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: string }).code === "P2028"
+    ) {
+      return jsonError(
+        503,
+        "Muita atividade no banco agora. Aguarde alguns segundos e tente de novo."
       );
     }
     return handleAuthError(err) ?? jsonError(500, "Erro inesperado.");
