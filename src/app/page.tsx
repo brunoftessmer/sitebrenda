@@ -25,7 +25,7 @@ export default function Home() {
           parte dessa fase com ela! 💛
         </p>
         <p className="mx-auto mt-4 inline-block rounded-full bg-rose-100 px-4 py-1.5 text-sm font-medium text-rose-700">
-          🎉 Sorteio dia 27/09/2026
+          🎉 Sorteio dia 12/10/2026
         </p>
       </section>
 
